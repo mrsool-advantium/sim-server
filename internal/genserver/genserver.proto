@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package genserver;
+
+option go_package = "./proto";
+
+service SimulatedDriver {
+  rpc GoOnline(GoOnlineRequest) returns (GoOnlineResponse);
+  rpc InitConnection(InitConnectionRequest) returns (InitConnectionResponse);
+  rpc SetLocation(SetLocationRequest) returns (SetLocationResponse);
+  rpc IsAlive(IsAliveRequest) returns (IsAliveResponse);
+}
+
+service SimulatedCustomer {
+  rpc InitConnection(InitConnectionRequest) returns (InitConnectionResponse);
+  rpc SetLocation(SetLocationRequest) returns (SetLocationResponse);
+  rpc IsAlive(IsAliveRequest) returns (IsAliveResponse);
+  rpc TripEstimate(TripEstimateRequest) returns (TripEstimateResponse);
+  rpc ConfirmTrip(ConfirmTripRequest) returns (ConfirmTripResponse);
+}
+
+message IsAliveRequest {}
+message IsAliveResponse {}
+
+message GoOnlineRequest {}
+message GoOnlineResponse {
+  bool success = 1;
+}
+
+message InitConnectionRequest {}
+message InitConnectionResponse {
+  bool success = 1;
+}
+
+message SetLocationRequest {
+  double lat = 1;
+  double lng = 2;
+}
+
+message SetLocationResponse {
+  bool success = 1;
+}
+
+message TripEstimateRequest{
+  double originLat = 1;
+  double originLng = 2;
+  double destinationLat = 3;
+  double destinationLng = 4;
+}
+
+message TripEstimateResponse{
+  bool success = 1;
+}
+
+message ConfirmTripRequest{
+  double originLat = 1;
+  double originLng = 2;
+  double destinationLat = 3;
+  double destinationLng = 4;
+}
+
+message ConfirmTripResponse{
+  bool success = 1;
+}
+
+message DriverAcceptTripRequest{
+  string tripId = 1;
+}
+
+message DriverAcceptTripResponse{
+  bool success = 1;
+}
+
+message DriverRejectTripRequest{
+  string tripId = 1;
+}
+
+message DriverRejectTripResponse{
+  bool success = 1;
+}
+
+message DriverArrivalRequest{
+  string tripId = 1;
+}
+
+message DriverArrivalResponse{
+  bool success = 1;
+}
+
+message DriverStartTripRequest{
+  string tripId = 1;
+}
+
+message DriverStartTripResponse{
+  bool success = 1;
+}
+
+message DriverCompleteTripRequest{
+  string tripId = 1;
+}
+
+message DriverCompleteTripResponse{
+  bool success = 1;
+}
+
+message RatingRequest{
+  string tripId = 1;
+  float rating = 2;
+}
+
+message RatingResponse{
+  bool success = 1;
+}
+
+service GenServer {
+  rpc HandleCall(HandleCallRequest) returns (HandleCallResponse);
+  rpc HandleCast(HandleCastRequest) returns (HandleCastResponse);
+}
+
+message HandleCallRequest {
+  string action = 1;
+  int32 value = 2;
+}
+
+message HandleCallResponse {
+  int32 result = 1;
+}
+
+message HandleCastRequest {
+  string action = 1;
+  int32 value = 2;
+}
+
+message HandleCastResponse {}
