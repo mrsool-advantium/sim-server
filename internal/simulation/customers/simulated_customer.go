@@ -115,7 +115,7 @@ func (sim *SimulatedCustomer) InitConnection(ctx context.Context, req *pb.InitCo
 	// Get token
 	token := sim.customer.AccessToken
 
-	address := url.URL{Scheme: "ws", Host: host, Path: "/ws/customer"}
+	address := url.URL{Scheme: "wss", Host: host, Path: "/ws/customer"}
 	conn, _, err := websocket.DefaultDialer.Dial(address.String(), http.Header{
 		"Authorization": []string{"Bearer " + token},
 		"MRSOOL-CLIENT": []string{"Simulation"},

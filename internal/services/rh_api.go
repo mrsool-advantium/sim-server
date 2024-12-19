@@ -13,12 +13,13 @@ import (
 )
 
 const (
-	host        = "localhost:8080"
+	scheme      = "https"
+	host        = "driver-service-810707138380.asia-south1.run.app"
 	backdoorOtp = "1234"
 )
 
 func DriverLogin(phoneNumber string) (*models.CommonResponse, error) {
-	address := url.URL{Scheme: "http", Host: host, Path: "/api/v1/admin/simulate/driver"}
+	address := url.URL{Scheme: scheme, Host: host, Path: "/api/v1/admin/simulate/driver"}
 	payload, err := json.Marshal(map[string]interface{}{"phone_number": phoneNumber})
 	if err != nil {
 		return &models.CommonResponse{}, err
@@ -53,7 +54,7 @@ func DriverLogin(phoneNumber string) (*models.CommonResponse, error) {
 }
 
 func CustomerLogin(phoneNumber string) (*models.CommonResponse, error) {
-	address := url.URL{Scheme: "http", Host: host, Path: "/api/v1/admin/simulate/customer"}
+	address := url.URL{Scheme: scheme, Host: host, Path: "/api/v1/admin/simulate/customer"}
 	payload, err := json.Marshal(map[string]interface{}{"phone_number": phoneNumber})
 	if err != nil {
 		return &models.CommonResponse{}, err
@@ -88,7 +89,7 @@ func CustomerLogin(phoneNumber string) (*models.CommonResponse, error) {
 }
 
 func CheckShiftStatus(token string) (*models.CommonResponse, error) {
-	address := url.URL{Scheme: "http", Host: host, Path: "/api/v1/driver/shift_status"}
+	address := url.URL{Scheme: scheme, Host: host, Path: "/api/v1/driver/shift_status"}
 	request, err := http.NewRequest("GET", address.String(), nil)
 	if err != nil {
 		log.Println("Error creating HTTP request:", err)
@@ -124,7 +125,7 @@ func CheckShiftStatus(token string) (*models.CommonResponse, error) {
 }
 
 func StartNewShift(token string) (*models.CommonResponse, error) {
-	address := url.URL{Scheme: "http", Host: host, Path: "/api/v1/driver/go_online"}
+	address := url.URL{Scheme: scheme, Host: host, Path: "/api/v1/driver/go_online"}
 	request, err := http.NewRequest("POST", address.String(), nil)
 	if err != nil {
 		log.Println("Error creating HTTP request:", err)
@@ -146,6 +147,7 @@ func StartNewShift(token string) (*models.CommonResponse, error) {
 		log.Println("Error reading response body:", err)
 		return nil, err
 	}
+	log.Printf("%v", body)
 	var commonResponse models.CommonResponse
 	err = json.Unmarshal(body, &commonResponse)
 	if err != nil {

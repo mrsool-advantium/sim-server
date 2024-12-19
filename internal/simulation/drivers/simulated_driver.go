@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	host                    = "localhost:8080"
+	scheme                  = "wss"
+	host                    = "driver-service-810707138380.asia-south1.run.app"
 	sleepBeforeArrival      = 10 * time.Second
 	sleepPingLocation       = 50 * time.Second
 	sleepBeforeStartTrip    = 5 * time.Second
@@ -117,7 +118,7 @@ func (sim *SimulatedDriver) InitConnection(ctx context.Context, req *pb.InitConn
 	// Get token
 	token := sim.driver.AccessToken
 
-	address := url.URL{Scheme: "ws", Host: host, Path: "/ws/driver"}
+	address := url.URL{Scheme: scheme, Host: host, Path: "/ws/driver"}
 	conn, _, err := websocket.DefaultDialer.Dial(address.String(), http.Header{
 		"Authorization": []string{"Bearer " + token},
 		"MRSOOL-CLIENT": []string{"Simulation"},

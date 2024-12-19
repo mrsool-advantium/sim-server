@@ -23,7 +23,7 @@ func (handler SimHandler) SimulateScenario(context *gin.Context) {
 		NumCustomers        int     `json:"num_customers"`
 		CenterLat           float64 `json:"center_lat"`
 		CenterLng           float64 `json:"center_lng"`
-		Radius              int     `json:"radius"`
+		Radius              float64 `json:"radius"`
 		Loop                bool    `json:"loop"`
 		AcceptanceRate      float64 `json:"acceptance_rate"`
 		DriverSeriesStart   int     `json:"driver_series_start"`
