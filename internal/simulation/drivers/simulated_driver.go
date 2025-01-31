@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sim-server/internal/services"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -23,7 +24,7 @@ import (
 
 const (
 	scheme                  = "wss"
-	host                    = "driver-service-810707138380.asia-south1.run.app"
+	host                    = "rh-core.advantium.in"
 	sleepBeforeArrival      = 10 * time.Second
 	sleepPingLocation       = 50 * time.Second
 	sleepBeforeStartTrip    = 5 * time.Second
@@ -40,6 +41,7 @@ type SimulatedDriver struct {
 	tripOfferData  map[string]interface{}
 	tripId         string
 	acceptanceRate float64
+	writeLock      sync.Mutex
 }
 
 // Client Methods
@@ -153,9 +155,8 @@ func (sim *SimulatedDriver) SetLocation(ctx context.Context, req *pb.SetLocation
 		Command: models.DriverLocation,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return &pb.SetLocationResponse{Success: false}, err
+	if !sim.sendMessageToClient(message) {
+		return &pb.SetLocationResponse{Success: false}, nil
 	}
 	return &pb.SetLocationResponse{Success: true}, nil
 }
@@ -204,6 +205,17 @@ func checkIfAlreadyServed(driverId string) bool {
 }
 
 // Utility Methods
+
+func (sim *SimulatedDriver) sendMessageToClient(bytes []byte) bool {
+	sim.writeLock.Lock() // Acquire lock before writing
+	defer sim.writeLock.Unlock()
+	if err := sim.conn.WriteMessage(websocket.TextMessage, bytes); err != nil {
+		log.Println("Write error:", err)
+		return false
+	}
+
+	return true
+}
 
 func registerService(driverId string) (lis net.Listener, err error) {
 	lis, err = net.Listen("tcp", ":0") // Let the OS provide the port number
@@ -280,7 +292,7 @@ func (sim *SimulatedDriver) pingDriverLocation() {
 				Longitude: sim.lng,
 			},
 		},
-		VehicleCategoryId: 1,
+		VehicleCategoryId: 2,
 	}
 	jsonPayload, _ := json.Marshal(locationPayload)
 	message, _ := json.Marshal(models.IncomingMessage{
@@ -288,10 +300,7 @@ func (sim *SimulatedDriver) pingDriverLocation() {
 		Payload: jsonPayload,
 	})
 
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }
 
 func (sim *SimulatedDriver) handleNewTripOffer(payload map[string]interface{}) {
@@ -329,10 +338,7 @@ func (sim *SimulatedDriver) AcceptTrip(tripId string) {
 		Command: models.AcceptTrip,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 	sim.tripId = tripId
 	// from where to trigger driver arrival
 	time.Sleep(sleepBeforeArrival)
@@ -348,10 +354,7 @@ func (sim *SimulatedDriver) RejectTrip(tripId string) {
 		Command: models.RejectTrip,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }
 
 func (sim *SimulatedDriver) handleEtaPayload(payload map[string]interface{}) {
@@ -398,10 +401,7 @@ func (sim *SimulatedDriver) DriverArrival() {
 		Command: models.ArrivedForPickup,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }
 
 func (sim *SimulatedDriver) StartTrip() {
@@ -413,10 +413,7 @@ func (sim *SimulatedDriver) StartTrip() {
 		Command: models.StartTrip,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }
 
 func (sim *SimulatedDriver) CompleteTrip() {
@@ -428,10 +425,7 @@ func (sim *SimulatedDriver) CompleteTrip() {
 		Command: models.CompleteTrip,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }
 
 func (sim *SimulatedDriver) handleTripCompletion(_ map[string]interface{}) {
@@ -448,10 +442,7 @@ func (sim *SimulatedDriver) RateCustomer() {
 		Command: models.RateCustomer,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }
 
 func shouldAccept(probability float64) bool {

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sim-server/internal/services"
+	"sync"
 	"time"
 
 	"sim-server/internal/models"
@@ -22,7 +23,8 @@ import (
 )
 
 const (
-	host               = "localhost:8080"
+	scheme             = "wss"
+	host               = "rh-core.advantium.in"
 	sleepBeforeLooping = 20 * time.Second
 )
 
@@ -40,6 +42,7 @@ type SimulatedCustomer struct {
 	requestEstimateData map[string]interface{}
 	confirmTripData     map[string]interface{}
 	tripId              string
+	writeLock           sync.Mutex
 }
 
 // Client Methods
@@ -115,7 +118,7 @@ func (sim *SimulatedCustomer) InitConnection(ctx context.Context, req *pb.InitCo
 	// Get token
 	token := sim.customer.AccessToken
 
-	address := url.URL{Scheme: "wss", Host: host, Path: "/ws/customer"}
+	address := url.URL{Scheme: scheme, Host: host, Path: "/ws/customer"}
 	conn, _, err := websocket.DefaultDialer.Dial(address.String(), http.Header{
 		"Authorization": []string{"Bearer " + token},
 		"MRSOOL-CLIENT": []string{"Simulation"},
@@ -153,9 +156,8 @@ func (sim *SimulatedCustomer) TripEstimate(ctx context.Context, req *pb.TripEsti
 		Command: models.RequestEstimate,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return &pb.TripEstimateResponse{Success: false}, err
+	if !sim.sendMessageToClient(message) {
+		return &pb.TripEstimateResponse{Success: false}, nil
 	}
 	return &pb.TripEstimateResponse{Success: true}, nil
 }
@@ -174,7 +176,7 @@ func (sim *SimulatedCustomer) ConfirmTrip(ctx context.Context, req *pb.ConfirmTr
 			Latitude:  sim.destinationLat,
 			Longitude: sim.destinationLng,
 		},
-		VehicleCategoryId: 1, //default selecting the category
+		VehicleCategoryId: 2, //default selecting the category
 	}
 	jsonPayload, _ := json.Marshal(tripRequestPayload)
 
@@ -182,14 +184,25 @@ func (sim *SimulatedCustomer) ConfirmTrip(ctx context.Context, req *pb.ConfirmTr
 		Command: models.ConfirmTrip,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return &pb.ConfirmTripResponse{Success: false}, err
+
+	if !sim.sendMessageToClient(message) {
+		return &pb.ConfirmTripResponse{Success: false}, nil
 	}
 	return &pb.ConfirmTripResponse{Success: true}, nil
 }
 
 // Utility Methods
+
+func (sim *SimulatedCustomer) sendMessageToClient(bytes []byte) bool {
+	sim.writeLock.Lock() // Acquire lock before writing
+	defer sim.writeLock.Unlock()
+	if err := sim.conn.WriteMessage(websocket.TextMessage, bytes); err != nil {
+		log.Println("Write error:", err)
+		return false
+	}
+
+	return true
+}
 
 func (sim *SimulatedCustomer) serve(customerId string) {
 	//if checkIfAlreadyServed(customerId) {
@@ -339,8 +352,5 @@ func (sim *SimulatedCustomer) RateDriver() {
 		Command: models.RateDriver,
 		Payload: jsonPayload,
 	})
-	if err := sim.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	sim.sendMessageToClient(message)
 }

@@ -14,7 +14,7 @@ import (
 
 const (
 	scheme      = "https"
-	host        = "driver-service-810707138380.asia-south1.run.app"
+	host        = "rh-core.advantium.in"
 	backdoorOtp = "1234"
 )
 
